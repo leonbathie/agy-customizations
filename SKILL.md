@@ -120,7 +120,14 @@ python ./scripts/agy_cli.py scaffold ma-nouvelle-competence --type skill
 # 5. Génération du tableau de bord télémétrique HTML interactif
 python ./scripts/agy_cli.py dashboard --open
 
-# 6. Exécution de la matrice complète des tests (SK-01 à SK-07)
+# 6. Moteur Git Avancé (Git Intelligence Engine)
+python ./scripts/agy_cli.py git scan        # Bouclier anti-fuite de secrets (clés d'API, JWT, tokens)
+python ./scripts/agy_cli.py git commit      # Générateur de commits conventionnels (analyse AST/Diff)
+python ./scripts/agy_cli.py git changelog   # Générateur de CHANGELOG.md & calcul SemVer
+python ./scripts/agy_cli.py git conflicts   # Détection et analyse de conflits de fusion (merge)
+python ./scripts/agy_cli.py git worktree    # Gestion des arbres de travail isolés (subagents worktrees)
+
+# 7. Exécution de la matrice complète des tests (SK-01 à SK-07)
 python ./scripts/agy_cli.py matrix
 ```
 
@@ -128,6 +135,8 @@ python ./scripts/agy_cli.py matrix
 
 ## 5. Synchronisation GitHub & CI/CD
 
+- **Moteur Git Avancé :** [`scripts/git_advanced_engine.py`](./scripts/git_advanced_engine.py)
+- **Journal des Versions :** [`CHANGELOG.md`](./CHANGELOG.md)
 - **Synchronisation automatique avec GitHub :**
   ```powershell
   & ./scripts/sync_github.ps1 -RepoName "agy-customizations"

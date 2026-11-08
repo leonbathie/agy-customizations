@@ -71,6 +71,18 @@ python ./scripts/agy_cli.py simulate --prompt "Crée une API sécurisée avec te
 # Échafauder une nouvelle compétence selon les standards AGY
 python ./scripts/agy_cli.py scaffold my-new-skill --type skill
 
+# Scanner les modifications pour bloquer toute fuite de secret/clé API
+python ./scripts/agy_cli.py git scan
+
+# Générer automatiquement un commit sémantique conventionnel
+python ./scripts/agy_cli.py git commit --hint "feat: add neural classifier"
+
+# Générer et mettre à jour le CHANGELOG.md avec calcul de version SemVer
+python ./scripts/agy_cli.py git changelog --write
+
+# Gérer les worktrees Git isolés pour les sous-agents
+python ./scripts/agy_cli.py git worktree
+
 # Générer le tableau de bord de télémétrie interactif
 python ./scripts/agy_cli.py dashboard --open
 

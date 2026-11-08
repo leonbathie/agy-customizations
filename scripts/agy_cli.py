@@ -44,6 +44,9 @@ mod_migrator = import_module_from_path("migrator", FRAMEWORK_ROOT / "sub-skills"
 detect_legacy_configs = mod_migrator.detect_legacy_configs
 convert_rule_to_antigravity = mod_migrator.convert_rule_to_antigravity
 
+# Git Advanced Intelligence Engine
+from scripts.git_advanced_engine import GitEngine
+
 # Color formatting helpers
 def c_cyan(text: str) -> str: return f"\033[96m{text}\033[0m"
 def c_green(text: str) -> str: return f"\033[92m{text}\033[0m"
@@ -317,6 +320,90 @@ def cmd_migrate(args):
         if res['extracted_skills']:
             print(f"    Skills créés : {', '.join(res['extracted_skills'])}")
 
+def cmd_git(args):
+    """Git Advanced Intelligence operations."""
+    engine = GitEngine(FRAMEWORK_ROOT)
+    sub = args.git_action
+
+    if sub == "scan":
+        print(c_cyan("=" * 80))
+        print(c_cyan("  GIT SECRET SHIELD — DÉTECTION DE FUITE D'IDENTIFIANTS ET CLÉS  "))
+        print(c_cyan("=" * 80))
+        res = engine.scan_for_secrets(staged_only=args.staged)
+        if res["safe"]:
+            print(c_green("[✓] Aucun secret, clé d'API ni token détecté dans vos modifications."))
+        else:
+            print(c_red(f"[!] ALERTE SÉCURITÉ : {res['leaks_count']} secret(s) détecté(s) !"))
+            for leak in res["leaks"]:
+                print(f"  - Fichier: {c_bold(leak['file'])} (Ligne {leak['line']}) | Type: {leak['type']}")
+                print(f"    Aperçu masqué : {leak['preview']}")
+            print(c_yellow("\nAction recommandée : Ne committez pas ces identifiants. Utilisez des variables d'environnement."))
+        print(c_cyan("=" * 80))
+
+    elif sub == "commit":
+        print(c_cyan("=" * 80))
+        print(c_cyan("  SMART CONVENTIONAL COMMIT GENERATOR (AST & DIFF ANALYZER)  "))
+        print(c_cyan("=" * 80))
+        res = engine.generate_smart_commit(hint=args.hint)
+        if "error" in res:
+            print(c_yellow(f"[!] {res['error']}"))
+        else:
+            print(f"Type suggéré  : {c_green(res['type'])}")
+            print(f"Scope         : {c_bold(res['scope'])}")
+            print(f"Sujet         : {res['subject']}")
+            print(f"\nMessage de commit généré :\n")
+            print(c_bold(res['full_message']))
+            if args.execute:
+                # Stage all and commit
+                engine.run_git(["add", "."])
+                commit_res = engine.run_git(["commit", "-m", res['full_message']], check=False)
+                if commit_res.returncode == 0:
+                    print(c_green("\n[✓] Commit enregistré avec succès dans l'historique Git !"))
+                else:
+                    print(c_red(f"\n[!] Erreur lors du commit : {commit_res.stderr}"))
+        print(c_cyan("=" * 80))
+
+    elif sub == "changelog":
+        print(c_cyan("=" * 80))
+        print(c_cyan("  GÉNÉRATEUR AUTOMATISÉ DE CHANGELOG ET SEMVER  "))
+        print(c_cyan("=" * 80))
+        res = engine.generate_changelog()
+        print(f"Version calculée : {c_green(res['version'])} ({res['commits_count']} commits analysés)")
+        if args.write:
+            target_cl = FRAMEWORK_ROOT / "CHANGELOG.md"
+            target_cl.write_text(res["content"], encoding="utf-8")
+            print(c_green(f"[✓] CHANGELOG.md mis à jour : {target_cl}"))
+        else:
+            print("\n" + res["content"])
+        print(c_cyan("=" * 80))
+
+    elif sub == "conflicts":
+        print(c_cyan("=" * 80))
+        print(c_cyan("  ANALYSEUR DE CONFLITS DE FUSION GIT (MERGE CONFLICTS)  "))
+        print(c_cyan("=" * 80))
+        res = engine.analyze_conflicts()
+        if not res["has_conflicts"]:
+            print(c_green("[✓] Aucun conflit de fusion non résolu. L'arbre de travail est sain."))
+        else:
+            print(c_yellow(f"[!] {res['conflict_files_count']} fichier(s) en conflit :"))
+            for cf in res["files"]:
+                print(f"  - {c_bold(cf['file'])} : {cf['conflict_blocks_count']} bloc(s) de conflit ({cf['ours_branch']} <-> {cf['theirs_branch']})")
+        print(c_cyan("=" * 80))
+
+    elif sub == "worktree":
+        print(c_cyan("=" * 80))
+        print(c_cyan("  GESTIONNAIRE D'ARBRES DE TRAVAIL ISOLÉS (GIT WORKTREES)  "))
+        print(c_cyan("=" * 80))
+        trees = engine.list_worktrees()
+        print(f"Arbres de travail actifs ({len(trees)}) :")
+        for t in trees:
+            branch_str = t.get('branch', 'HEAD détachée')
+            print(f"  * {c_bold(t['path'])} [{c_green(branch_str)}]")
+        if args.prune:
+            engine.prune_worktrees()
+            print(c_green("[✓] Références obsolètes d'arbres de travail nettoyées."))
+        print(c_cyan("=" * 80))
+
 def cmd_monitor(args):
     """Launch terminal monitor."""
     from scripts.agy_monitor import render_monitor_view
@@ -368,6 +455,15 @@ def main():
     p_mig.add_argument("--source", default=".", help="Dossier source")
     p_mig.add_argument("--dest", default=".", help="Dossier de destination")
 
+    # Git Advanced
+    p_git = subparsers.add_parser("git", help="Fonctionnalités Git hautement avancées (secrets, commits, changelog, worktree)")
+    p_git.add_argument("git_action", choices=["scan", "commit", "changelog", "conflicts", "worktree"], help="Action Git avancée")
+    p_git.add_argument("--staged", action="store_true", help="Limiter l'analyse aux fichiers indexés (staged)")
+    p_git.add_argument("--hint", type=str, help="Indice ou description pour la génération du commit")
+    p_git.add_argument("--execute", action="store_true", help="Exécuter et committer réellement")
+    p_git.add_argument("--write", action="store_true", help="Écrire directement le résultat dans CHANGELOG.md")
+    p_git.add_argument("--prune", action="store_true", help="Nettoyer les worktrees orphelins")
+
     # Monitor
     subparsers.add_parser("monitor", help="Affiche le moniteur de bord terminal temps réel")
 
@@ -387,6 +483,7 @@ def main():
     elif args.command == "conflicts": cmd_conflicts(args)
     elif args.command == "optimize": cmd_optimize(args)
     elif args.command == "migrate": cmd_migrate(args)
+    elif args.command == "git": cmd_git(args)
     elif args.command == "monitor": cmd_monitor(args)
     elif args.command == "matrix": cmd_matrix(args)
 
