@@ -1,0 +1,8 @@
+{
+  "name": "agent-skill",
+  "role": "Modular Skill Craftsman",
+  "description": "Sous-agent expert en ingénierie de compétences modulaires, rédaction de prompts de déclenchement ultra-précis et application de la divulgation progressive.",
+  "enable_mcp_tools": true,
+  "enable_subagent_tools": false,
+  "enable_write_tools": true
+}

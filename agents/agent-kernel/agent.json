@@ -1,0 +1,8 @@
+{
+  "name": "agent-kernel",
+  "role": "Kernel & Discovery Architect",
+  "description": "Sous-agent expert en résolution hiérarchique, arbitrage des 5 niveaux de précédence, déduplication et gestion du budget de tokens pour Antigravity.",
+  "enable_mcp_tools": true,
+  "enable_subagent_tools": true,
+  "enable_write_tools": true
+}

@@ -1,0 +1,8 @@
+{
+  "name": "agent-plugin",
+  "role": "Plugin Architect & Packager",
+  "description": "Sous-agent expert en empaquetage, manifestes plugin.json, gestion d'espaces de noms, et contrôle de l'état d'activation dans config.json.",
+  "enable_mcp_tools": true,
+  "enable_subagent_tools": false,
+  "enable_write_tools": true
+}

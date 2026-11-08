@@ -1,0 +1,8 @@
+{
+  "name": "agent-hook",
+  "role": "Lifecycle Guard & Hook Engineer",
+  "description": "Sous-agent expert en programmation d'intercepteurs de cycle de vie (hooks.json), gardes de sécurité déterministes et intégration d'outils d'hygiène de code.",
+  "enable_mcp_tools": true,
+  "enable_subagent_tools": false,
+  "enable_write_tools": true
+}

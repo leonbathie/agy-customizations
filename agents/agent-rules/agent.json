@@ -1,0 +1,8 @@
+{
+  "name": "agent-rules",
+  "role": "Rules Governance & AST Auditor",
+  "description": "Sous-agent expert en conception, gouvernance et validation des règles AGENTS.md et GEMINI.md, garantissant le respect du plafond de 24 Ko et du budget de 20 000 tokens.",
+  "enable_mcp_tools": true,
+  "enable_subagent_tools": false,
+  "enable_write_tools": true
+}

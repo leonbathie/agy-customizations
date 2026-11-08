@@ -1,0 +1,8 @@
+{
+  "name": "agent-deployer",
+  "role": "Customizations CI/CD Release Manager",
+  "description": "Sous-agent expert en validation CI/CD, audit de manifestes déclaratifs skills.json/plugins.json, et déploiement multi-environnements des personnalisations Antigravity.",
+  "enable_mcp_tools": true,
+  "enable_subagent_tools": true,
+  "enable_write_tools": true
+}
