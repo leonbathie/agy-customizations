@@ -2,7 +2,8 @@
 """
 Advanced Unified CLI for Antigravity Customizations Framework (agy_cli.py)
 Provides enterprise-grade management, auditing, auto-fixing, simulation, scaffolding,
-telemetry dashboard generation, and GitHub synchronization.
+telemetry dashboard generation, token optimization, conflict detection, AI config migration,
+terminal monitoring, and GitHub synchronization.
 """
 
 import os
@@ -21,6 +22,27 @@ FRAMEWORK_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(FRAMEWORK_ROOT))
 from scripts.orchestrator import run_global_audit
 from scripts.dashboard_generator import generate_dashboard_html
+# Dynamic imports for folders with hyphens
+import importlib.util
+
+def import_module_from_path(module_name: str, file_path: Path):
+    spec = importlib.util.spec_from_file_location(module_name, str(file_path))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+# SK-02 helpers
+mod_conflict = import_module_from_path("conflict_detector", FRAMEWORK_ROOT / "sub-skills" / "SK-02-rules-engine" / "scripts" / "conflict_detector.py")
+detect_rule_conflicts = mod_conflict.detect_rule_conflicts
+
+mod_token = import_module_from_path("token_optimizer", FRAMEWORK_ROOT / "sub-skills" / "SK-02-rules-engine" / "scripts" / "token_optimizer.py")
+analyze_rule_tokens = mod_token.analyze_rule_tokens
+minify_markdown_rules = mod_token.minify_markdown_rules
+
+# SK-03 helpers
+mod_migrator = import_module_from_path("migrator", FRAMEWORK_ROOT / "sub-skills" / "SK-03-skill-authoring" / "scripts" / "migrator.py")
+detect_legacy_configs = mod_migrator.detect_legacy_configs
+convert_rule_to_antigravity = mod_migrator.convert_rule_to_antigravity
 
 # Color formatting helpers
 def c_cyan(text: str) -> str: return f"\033[96m{text}\033[0m"
@@ -90,7 +112,6 @@ def cmd_fix(args):
     print(c_cyan(f"[*] Lancement de l'auto-réparation sur : {target}"))
     fixed_count = 0
     
-    # 1. Check GEMINI.md / AGENTS.md for accidental YAML frontmatters
     for candidate in ["GEMINI.md", "AGENTS.md"]:
         f_path = target / candidate
         if f_path.is_file():
@@ -103,7 +124,6 @@ def cmd_fix(args):
                     print(c_green(f"  [FIX] Frontmatter YAML supprimé avec succès dans {candidate}"))
                     fixed_count += 1
                     
-    # 2. Check rules byte sizes and split if > 24000 bytes
     rules_dir = target / ".agents" / "rules"
     if rules_dir.is_dir():
         for r_file in rules_dir.glob("*.md"):
@@ -122,7 +142,6 @@ def cmd_fix(args):
                         sub_files.append((sec.split("\n")[0].strip(), sub_name))
                         fixed_count += 1
                     
-                    # Update master rule with includes
                     new_master = header + "\n\n"
                     for title, s_name in sub_files:
                         new_master += f"@[{title}]({s_name})\n"
@@ -206,33 +225,23 @@ def cmd_simulate(args):
     print(c_cyan("=" * 80))
     print(f"Prompt testé : \"{c_bold(prompt)}\"\n")
 
-    time.sleep(0.1)
     print(c_bold("[Étape 1] Phase d'Initialisation (SessionStart / PrePrompt)"))
     print("  -> Interception de session active : hooks.json vérifié.")
     print(f"  -> Context Window estimé : {len(prompt) // 4 + 450} tokens.")
 
-    time.sleep(0.1)
     print(c_bold("\n[Étape 2] Résolution Hiérarchique & Arbitrage des Règles"))
     print("  -> Découverte ascendante CWD -> Git Root...")
-    print("  -> Règles candidates sélectionnées :")
-    print("     * [Niveau 1] Project Guidelines (Workspace)")
-    print("     * [Niveau 3] Global agy-customizations Rules Engine")
     print("  -> Consommation budget règles : 1 420 / 20 000 tokens (7.1%). Aucune rétrogradation requise.")
 
-    time.sleep(0.1)
     print(c_bold("\n[Étape 3] Activation des Skills (Progressive Disclosure)"))
-    print("  -> Analyse sémantique du besoin utilisateur...")
     print(f"  -> {c_green('Compétence identifiée')} : agy-customizations (Priorité Système)")
-    print("  -> Injection à la demande : injection des références et des sous-skills SK-01 à SK-07.")
 
-    time.sleep(0.1)
     print(c_bold("\n[Étape 4] Simulation des Intercepteurs de Cycle de Vie (PreToolUse / PostToolUse)"))
     print("  -> Déclenchement de l'outil cible simulé : `run_command`")
     print("  -> Évaluation matcher PreToolUse : [PASS - Autorisé sans blocage]")
     print("  -> Exécution en bac à sable (Sandbox isolée)")
     print("  -> Évaluation PostToolUse : Télémétrie capturée, code de sortie 0.")
 
-    time.sleep(0.1)
     print(c_bold("\n[Étape 5] Bilan Télémétrique de Fin de Tour"))
     print(f"  {c_green('[✓] TOUTES LES PHASES SE SONT EXÉCUTÉES SANS CONFLIT NI ERREUR.')}")
     print(c_cyan("=" * 80))
@@ -249,6 +258,69 @@ def cmd_dashboard(args):
             print(c_cyan("  -> Dashboard ouvert dans le navigateur par défaut."))
         except Exception as e:
             print(c_yellow(f"  Impossible d'ouvrir automatiquement : {e}"))
+
+def cmd_conflicts(args):
+    """Detect rule contradictions and conflicts."""
+    target_dir = Path(args.target).resolve()
+    rules = list(target_dir.glob("**/GEMINI.md")) + list(target_dir.glob("**/AGENTS.md"))
+    rep = detect_rule_conflicts(rules)
+    print(c_cyan("=" * 80))
+    print(c_cyan("  DÉTECTEUR DE CONFLITS ET CONTRADICTIONS DE RÈGLES  "))
+    print(c_cyan("=" * 80))
+    print(f"Fichiers scannés : {len(rules)}")
+    if rep["conflicts_count"] == 0:
+        print(c_green("[✓] Aucun conflit ni directive contradictoire détecté."))
+    else:
+        print(c_yellow(f"[!] {rep['conflicts_count']} conflit(s) trouvé(s) :"))
+        for c in rep["conflicts"]:
+            print(f"  - [{c['category']}] (Sévérité : {c['severity']}) :")
+            for sub in c["contradictions"]:
+                print(f"      * {sub}")
+    print(c_cyan("=" * 80))
+
+def cmd_optimize(args):
+    """Analyze and optimize token budget."""
+    target = Path(args.file).resolve()
+    if not target.is_file():
+        print(c_red(f"[!] Fichier introuvable : {target}"))
+        return
+    rep = analyze_rule_tokens(target)
+    print(c_cyan("=" * 80))
+    print(c_cyan(f"  ANALYSEUR DE BUDGET DE TOKENS : {rep['file']}  "))
+    print(c_cyan("=" * 80))
+    print(f"Taille physique : {rep['total_bytes']} octets (Plafond max : 24 000 octets)")
+    print(f"Tokens estimés  : {rep['total_tokens']} tokens ({rep['budget_percentage']}% du budget de 20k)")
+    print("-" * 80)
+    for sec in rep["sections"]:
+        bar = "█" * int(sec["percentage"] / 5)
+        print(f"  {sec['title'][:30]:30} | {sec['tokens']:5} tok ({sec['percentage']:4.1f}%) {bar}")
+    if args.minify:
+        original = target.read_text(encoding="utf-8")
+        minified = minify_markdown_rules(original)
+        target.write_text(minified, encoding="utf-8")
+        saved = rep['total_tokens'] - (len(minified) // 4)
+        print(c_green(f"[✓] Règle minifiée. Économie estimée : {saved} tokens."))
+    print(c_cyan("=" * 80))
+
+def cmd_migrate(args):
+    """Migrate legacy configs (Cursor/Claude/Windsurf/Copilot) to Antigravity."""
+    src = Path(args.source).resolve()
+    dst = Path(args.dest).resolve()
+    print(c_cyan(f"[*] Recherche de configurations legacy dans {src}..."))
+    configs = detect_legacy_configs(src)
+    if not configs:
+        print(c_yellow("[!] Aucune configuration legacy détectée (.cursorrules, CLAUDE.md, .windsurfrules)."))
+        return
+    for cfg_path, kind in configs:
+        res = convert_rule_to_antigravity(cfg_path, kind, dst)
+        print(c_green(f"[✓] Migré ({res['kind']}) : {cfg_path.name} -> {res['target_rules']}"))
+        if res['extracted_skills']:
+            print(f"    Skills créés : {', '.join(res['extracted_skills'])}")
+
+def cmd_monitor(args):
+    """Launch terminal monitor."""
+    from scripts.agy_monitor import render_monitor_view
+    render_monitor_view()
 
 def cmd_matrix(args):
     """Execute complete test matrix and benchmark suite."""
@@ -282,6 +354,23 @@ def main():
     p_dash = subparsers.add_parser("dashboard", help="Génère le tableau de bord de télémétrie HTML interactif")
     p_dash.add_argument("--open", action="store_true", help="Ouvrir dans le navigateur")
 
+    # Conflicts
+    p_conf = subparsers.add_parser("conflicts", help="Détecte les contradictions et conflits sémantiques entre règles")
+    p_conf.add_argument("--target", default=str(FRAMEWORK_ROOT), help="Dossier contenant les règles")
+
+    # Optimize
+    p_opt = subparsers.add_parser("optimize", help="Analyse et optimise la charge en tokens d'une règle")
+    p_opt.add_argument("file", help="Chemin du fichier de règle")
+    p_opt.add_argument("--minify", action="store_true", help="Minifier la règle en place")
+
+    # Migrate
+    p_mig = subparsers.add_parser("migrate", help="Migre des configurations Cursor/Claude/Windsurf vers Antigravity")
+    p_mig.add_argument("--source", default=".", help="Dossier source")
+    p_mig.add_argument("--dest", default=".", help="Dossier de destination")
+
+    # Monitor
+    subparsers.add_parser("monitor", help="Affiche le moniteur de bord terminal temps réel")
+
     # Matrix
     subparsers.add_parser("matrix", help="Exécute la matrice complète des tests unitaires et d'intégration")
 
@@ -295,6 +384,10 @@ def main():
     elif args.command == "scaffold": cmd_scaffold(args)
     elif args.command == "simulate": cmd_simulate(args)
     elif args.command == "dashboard": cmd_dashboard(args)
+    elif args.command == "conflicts": cmd_conflicts(args)
+    elif args.command == "optimize": cmd_optimize(args)
+    elif args.command == "migrate": cmd_migrate(args)
+    elif args.command == "monitor": cmd_monitor(args)
     elif args.command == "matrix": cmd_matrix(args)
 
 if __name__ == "__main__":
